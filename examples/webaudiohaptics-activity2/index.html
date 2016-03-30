@@ -1,0 +1,196 @@
+<!doctype HTML>
+
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script type="text/javascript" src="../assets/jquery-2.1.0.min.js"></script>
+    <script type="text/javascript" src="../assets/pd-fileutils.js"></script>
+    <script type="text/javascript" src="../../dist/webpd-latest.js"></script>
+    <script type="text/javascript" src="../assets/examples.js"></script>
+	<script type="text/javascript" src="js/nexusUI.js"></script>
+
+    <link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro' rel='stylesheet' type='text/css'>
+    <link href='../assets/examples.css' rel='stylesheet' type='text/css'>
+  </head>
+
+  <body>
+      <style>
+        body {
+          text-align:center;
+        } 
+      </style>
+    <div id="loading">Loading ...</div>
+    <canvas nx="dial" id="intensity" label="Intensity" min="0" max="1"></canvas>
+	<canvas nx="dial" id="duration" label="Duration" min="0.01" max="1000"></canvas>
+	<canvas nx="dial" id="soa" label="SOA" min="0" max="1000"></canvas>
+	<canvas nx="button" id="bang" label="Trigger"></canvas>
+	<canvas nx="envelope" id="envelopeLeft" label="Envelope (left)"></canvas>
+	<canvas nx="envelope" id="envelopeRight" label="Envelope (right)"></canvas>
+	</div>		
+	<br/>
+</div>
+
+    <div id="svg"></div>
+	    <div >Patch rendered to SVG using <a href="https://github.com/sebpiq/pd-fileutils">pd-fileutils</a></div>
+    <script type="text/javascript">
+		
+		var defaultIntensity = 0.3;
+		var defaultDuration = 100;
+		var maxDuration = 2000;
+		var defaultSOA = 250;
+
+		$('form').submit(function(event) {
+			event.preventDefault()
+		})
+
+		 nx.onload = function() {
+
+			intensity.on('value', function(data) {
+				//console.log('intensity', data)
+				Pd.send('intensity', [data])
+			})
+			duration.on('value', function(data) {
+				//console.log('duration', data)
+				Pd.send('duration', [data])
+			})
+			soa.on('value', function(data) {
+				//console.log('soa', data)
+				Pd.send('soa', [data])
+			})
+			bang.on('press', function(data) {
+				//console.log('bang', data)
+				if (data == 1) {
+					Pd.send('bang', [data])
+				}
+			})
+			envelopeLeft.on('*', function(data) {
+				//console.log('points',data.points)
+				if ("points" in data) {
+					data.points.forEach(function(p, i) {
+						console.log('point', i, p.x, p.y)
+					})
+				}
+			})
+			envelopeRight.on('*', function(data) {
+				//console.log('points',data.points)
+				if ("points" in data) {
+					data.points.forEach(function(p, i) {
+						console.log('point', i, p.x, p.y)
+					})
+				}
+			})
+
+			function line2env(args) {
+				var commaIdx = -1;
+				var ramp = [];
+				var points = [];
+				args.forEach(function(d, i) {
+					if (d === ',') {
+						commaIdx = i;
+					} else {
+						var m = i - commaIdx;
+						switch (m) {
+							case 1:
+								{
+									ramp.push({
+										value: 0,
+										interval: 0,
+										delay: 0
+									});
+									ramp[ramp.length - 1].value = d;
+								}
+								break;
+							case 2:
+								ramp[ramp.length - 1].interval = d;
+								break;
+							case 3:
+								ramp[ramp.length - 1].delay = d;
+								break;
+							default:
+								return [];
+						}
+					}
+				})
+				ramp.forEach(function(d, i) {
+					points.push({
+						y: d.value,
+						x: (d.delay + d.interval) / maxDuration
+					});
+
+				})
+				return points;
+			}
+
+			Pd.receive('left', function(args) {
+				var points = line2env(args);
+				//console.log('received a message from "left" : ', points)
+				envelopeLeft.set({
+					points: points
+				})
+			})
+
+			Pd.receive('right', function(args) {
+				var points = line2env(args);
+				//console.log('received a message from "right" : ', points)
+				envelopeRight.set({
+					points: points
+				})
+			})
+
+			intensity.set({
+				value: defaultIntensity
+			})
+
+			duration.set({
+				value: defaultDuration
+			})
+
+			soa.set({
+				value: defaultSOA
+			})
+
+			envelopeLeft.set({
+				points: [{
+					x: 0,
+					y: 0
+				}]
+			})
+			envelopeRight.set({
+				points: [{
+					x: 0,
+					y: 0
+				}]
+			})
+		}
+
+		Pd.start();
+
+		function patchLoaded(mainStr) {
+			// Rendering the patch as SVG
+			$('#svg').html(pdfu.renderSvg(pdfu.parse(mainStr), {
+				svgFile: false,
+				ratio: 1.5
+			}))
+
+			// Show start button
+			$('#loading').fadeOut(200, function() {
+				$('#startButton').fadeIn() //Pd.send('bang', [1])
+				Pd.send('intensity', [defaultIntensity]);
+				Pd.send('duration', [defaultDuration]);
+				Pd.send('soa', [defaultSOA]);
+			})
+		}
+		var patch
+		 $.get('pd/Activity2.pd', function(mainStr) {
+			// Loading the patch
+			patch = Pd.loadPatch(mainStr);
+
+			patchLoaded(mainStr);
+
+
+		})
+
+
+    </script>
+  </body>
+</html>
