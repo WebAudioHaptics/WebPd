@@ -9184,27 +9184,25 @@ var WAAOffsetNode = module.exports = function(context) {
   })[0]
   if (this._ones) this._ones = this._ones.ones 
   else {
- /*   this._ones = context.createOscillator()
-    this._ones.frequency.value = 0
-    this._ones.setPeriodicWave(context.createPeriodicWave(
-      new Float32Array([0, 1]), new Float32Array([0, 0])))
-    this._ones.start(0)*/
-	  
-	  console.log('new waaoffset')
-	  
-	  var ones = context.createBuffer(1, 128, context.sampleRate);
-	  			var arr = ones.getChannelData(0);
-	  			for (var i = 0; i < arr.length; i++){
-	  				arr[i] = 1;
-	  			}
-	  
-  	this._ones = context.createBufferSource();
-  				this._ones.channelCount = 1;
-  				this._ones.channelCountMode = "explicit";
-  				this._ones.buffer = ones;
-  				this._ones.loop = true;
-  				this._ones.start(0);
-				
+      //this._ones = context.createOscillator()
+      //this._ones.frequency.value = 0
+      //this._ones.setPeriodicWave(context.createPeriodicWave(
+      //  new Float32Array([0, 1]), new Float32Array([0, 0])))
+      //this._ones.start(0)
+
+     var ones = context.createBuffer(1, 128, context.sampleRate);
+     var arr = ones.getChannelData(0);
+     for (var i = 0; i < arr.length; i++) {
+     	arr[i] = 1;
+     }
+
+     this._ones = context.createBufferSource();
+     this._ones.channelCount = 1;
+     this._ones.channelCountMode = "explicit";
+     this._ones.buffer = ones;
+     this._ones.loop = true;
+
+     this._ones.start(0);
     WAAOffsetNode._ones.push({ context: context, ones: this._ones })
   }
 
